@@ -1,10 +1,16 @@
 let photons = new Array();
+let massive_particles = new Array();
+
 function setup() {
   createCanvas(720, 720);
-  black_hole = new Black_hole(5);
+  black_hole = new Black_hole(10);
   
-  for(let i = 0; i<50; i++){    
-    photons.push(new Photon(random(1, 3)*black_hole.mass/2, random(0, 20)*black_hole.mass, random(width/2-200, width/2), random(0, 2*PI), black_hole.pos.x, black_hole.pos.y));
+  for(let i = 0; i<100; i++){    
+    photons.push(new Particle(2, {r: 255, g: 255, b: 255}, random(0.5, 1.5)*black_hole.mass, random(20, 50)*black_hole.mass, random(width/2-200, width/2), random(0, 2*PI), black_hole.pos.x, black_hole.pos.y));
+  }
+  
+    for(let i = 0; i<100; i++){    
+    massive_particles.push(new Particle(5, {r: 0, g: 0, b: 255} ,random(0.5, 1.5)*black_hole.mass, random(20, 50)*black_hole.mass, random(width/2-200, width/2), random(0, 2*PI), black_hole.pos.x, black_hole.pos.y));
   }
   
 }
@@ -12,7 +18,7 @@ function setup() {
 
 function draw() {
   background(0, 0, 0, 100);
-  //black_hole.draw_horizon();
+  black_hole.draw_horizon();
   photons.forEach( (photon) =>{
       photon.render();
       photon.update(black_hole.force_massless(photon), black_hole.mass);
@@ -22,6 +28,21 @@ function draw() {
         photon.r = random(width/2-300, width/2);
         photon.phi = random(0, 2*PI);
         photon.visible = true;
+        photon.r_vel = -photon.E/Math.sqrt(2);
+      }
+    }
+   );
+   
+   massive_particles.forEach( (particle) =>{
+      particle.render();
+      particle.update(black_hole.force_massive(particle), black_hole.mass);
+      if(!particle.visible){
+        particle.E = random(0.5, 1.5)*black_hole.mass;
+        particle.Lz = random(20, 50)*black_hole.mass; 
+        particle.r = random(width/2-300, width/2);
+        particle.phi = random(0, 2*PI);
+        particle.visible = true;
+        particle.r_vel = -particle.E/Math.sqrt(2);
       }
     }
    );
@@ -35,21 +56,29 @@ class Black_hole{
   }
   
   draw_horizon(){
-    noStroke(10);
+    push()
+    stroke(255,0,0);
+    noFill();
     ellipse(this.pos.x, this.pos.y, 2*2*this.mass, 2*2*this.mass);
+    pop()
   }
   
-  force_massless(photon){
-     return -(photon.Lz**2)/(photon.r**3)+3*(photon.Lz**2 * this.mass)/(photon.r**4);
+  force_massless(particle){
+     return (particle.Lz**2)/(particle.r**3)-3*(particle.Lz**2 * this.mass)/(particle.r**4);
+  }
+  
+  force_massive(particle){
+    return -this.mass/particle.r**2+(particle.Lz**2)/(particle.r**3)-3*(particle.Lz**2 * this.mass)/(particle.r**4);;
   }
 }
 
-class Photon{
-  constructor(E, Lz, r, phi, black_hole_x, black_hole_y){
+class Particle{
+  constructor(size, colors, E, Lz, r, phi, black_hole_x, black_hole_y){
     this.E = E;
     this.Lz = Lz;
     this.pos = createVector(black_hole_x+r*cos(phi), black_hole_y+r*sin(phi));
-    this.size = 5;
+    this.size = size;
+    this.colors = colors;
     this.r_vel = -this.E/Math.sqrt(2);
     this.r = r;
     this.phi = phi;
@@ -58,7 +87,7 @@ class Photon{
   }
   
   update(force, black_hole_mass){
-    if(this.r>2*black_hole_mass){
+    if(this.r-this.size>2*black_hole_mass){
       this.apply_force(force);
     
       this.r_vel += this.r_acceleration;
@@ -83,7 +112,7 @@ class Photon{
   render(){
     if(this.visible){
       push()
-        fill(255);
+        fill(this.colors.r, this.colors.g, this.colors.b);
         ellipse(this.pos.x, this.pos.y, this.size, this.size);
       pop()
     }
